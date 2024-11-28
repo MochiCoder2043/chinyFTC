@@ -1,41 +1,50 @@
 package org.firstinspires.ftc.teamcode;
 
-import static org.firstinspires.ftc.teamcode.ChudnovskyPi.calculatePi;
-
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
-
-import java.math.BigDecimal;
 
 @TeleOp(name = "chinyOmni", group = "Linear OpMode")
 public class ChinyOmni extends LinearOpMode {
 
   // pi
-  public BigDecimal pi = calculatePi(1000);
 
   // Declare OpMode members for each of the 4 motors.
+  // test
   private ElapsedTime runtime = new ElapsedTime();
   private DcMotor leftFrontDrive = null;
   private DcMotorSimple leftBackDrive = null;
   private DcMotor rightFrontDrive = null;
   private DcMotorSimple rightBackDrive = null;
 
-  // private DcMotor arm1 = null;
-  // private DcMotor arm2 = null;
+  private DcMotorSimple arm = null;
+  private DcMotorSimple elevator = null;
+
+  private Servo wrist = null;
+  public double wristPos = 0.3;
+
+  private Servo leftClaw = null;
+  private Servo rightClaw = null;
+  public double rightClawPos = 0;
+  public double leftClawPos = 0.3;
+  public float nothing = 0;
 
   @Override
   public void runOpMode() {
 
     leftFrontDrive = hardwareMap.get(DcMotor.class, "leftFront");
-    leftBackDrive = hardwareMap.get(DcMotorSimple.class, "left_back_drive");
+    leftBackDrive = hardwareMap.get(DcMotorSimple.class, "leftBack");
     rightFrontDrive = hardwareMap.get(DcMotor.class, "rightFront");
-    rightBackDrive = hardwareMap.get(DcMotorSimple.class, "right_back_drive");
-    // arm1 = hardwareMap.get(DcMotor.class, "arm1");
-    // arm2 = hardwareMap.get(DcMotor.class, "arm2");
+    rightBackDrive = hardwareMap.get(DcMotorSimple.class, "rightBack");
+    arm = hardwareMap.get(DcMotorSimple.class, "arm");
+    elevator = hardwareMap.get(DcMotorSimple.class, "elevator");
+    wrist = hardwareMap.get(Servo.class, "wrist");
+    leftClaw = hardwareMap.get(Servo.class, "leftClaw");
+    rightClaw = hardwareMap.get(Servo.class, "rightClaw");
 
     leftFrontDrive.setDirection(DcMotor.Direction.REVERSE);
     leftBackDrive.setDirection(DcMotorSimple.Direction.REVERSE);
@@ -55,17 +64,17 @@ public class ChinyOmni extends LinearOpMode {
     while (opModeIsActive()) {
       double max;
 
-      // BUG: there wont mover properly
       // POV Mode uses left joystick to go forward & strafe, and right joystick to
       // rotate.
       double axial = -gamepad1.left_stick_y; // Note: pushing stick forward gives negative value
       double lateral = gamepad1.right_stick_x;
       double yaw = gamepad1.left_stick_x;
+      double armPower = 1;
+      double elevatorPower = 1;
 
       // Combine the joystick requests for each axis-motion to determine each wheel's
       // power.
       // Set up a variable for each drive wheel to save the power level for telemetry.
-      // BUG: these wont move properly
       double leftFrontPower = axial + lateral + yaw;
       double rightFrontPower = axial - lateral - yaw;
       double leftBackPower = axial - lateral + yaw;
@@ -97,29 +106,73 @@ public class ChinyOmni extends LinearOpMode {
       rightFrontDrive.setPower(rightFrontPower);
       leftBackDrive.setPower(leftBackPower);
       rightBackDrive.setPower(rightBackPower);
+      // arm.setPower(armPower);
+      // elevator.setPower(elevatorPower);
 
-      // TODO: move arm
-      /*
-       * if (gamepad1.y) {
-       * telemetry.addData("Angle", arm.getCurrentPosition());
-       * arm.setTargetPosition(arm.getCurrentPosition() + 560/4);
-       * arm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-       * arm.setPower(0.5);
-       * while (arm.isBusy()) {
-       * // Optionally add telemetry or other feedback
-       * telemetry.addData("Position", arm.getCurrentPosition());
-       * }
-       * arm.setPower(0);
-       * }
-       */
+      // Move arm
+      if (gamepad2.left_stick_y > 0) {
+        arm.setPower(armPower);
+      }
+      if (gamepad2.left_stick_y < 0) {
+        arm.setPower(-armPower);
+      }
+      if (gamepad2.left_stick_y == 0) {
+        arm.setPower(0);
+      }
 
-      // TODO: Move claw
+      // Extend arm
+      if (gamepad2.right_stick_y > 0) {
+        elevator.setPower(-elevatorPower);
+      }
+      if (gamepad2.right_stick_y < 0) {
+        elevator.setPower(elevatorPower);
+      }
+      if (gamepad2.right_stick_y == 0) {
+        elevator.setPower(0);
+      }
+
+      //  Move wrist
+      if (gamepad2.dpad_down) {
+        // move down
+        wristPos += 0.001;
+      }
+      if (gamepad2.dpad_up) {
+        // move up
+        wristPos -= 0.001;
+      }
+      if (gamepad2.y) {
+        // wrist up
+        wristPos = 0.05;
+      } if (gamepad2.a) {
+        // wrist down
+        wristPos = 0.77;
+      }
+      if (gamepad2.x) {
+        // wrist straight
+        wristPos = 0.25;
+      }
+      wrist.setPosition(wristPos);
+      // open full
+      if (gamepad2.right_bumper) {
+        rightClawPos = 0;
+        leftClawPos = 0.3;
+      }
+      if (gamepad2.left_bumper) {
+        rightClawPos = 0.6;
+        leftClawPos = 0;
+      }
+
+
+      rightClaw.setPosition(rightClawPos);
+      leftClaw.setPosition(leftClawPos);
 
       // Show the elapsed game time and wheel power.
+      telemetry.addData("Servo Position", wristPos);
+      telemetry.addData("Right Claw Position", rightClaw.getPosition());
+      telemetry.addData("Left Claw Position", leftClaw.getPosition());
       telemetry.addData("Status", "Run Time: " + runtime.toString());
       telemetry.addData("Front left/Right", "%4.2f, %4.2f", leftFrontPower, rightFrontPower);
       telemetry.addData("Back  left/Right", "%4.2f, %4.2f", leftBackPower, rightBackPower);
-      telemetry.addData("pi:", pi.toString());
       telemetry.update();
     }
   }
